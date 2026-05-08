@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulazione Epidemia: Trasmissione vs Letalità</title>
+    <style>
+        :root {
+            --bg:        #0d1117;
+            --panel:     #161b22;
+            --border:    #2a3a4a;
+            --blue:      #4a9eff;
+            --blue-dim:  #2c5f8a;
+            --orange:    #d97706;
+            --red:       #dc2626;
+            --green:     #22863a;
+            --text:      #e6edf3;
+            --text-sub:  #8b949e;
+            --accent:    #58a6ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 14px;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .main-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+        .sidebar {
+            flex: 0 0 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-sub);
+            padding: 9px 14px 8px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Labels */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+        }
+        .control-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        /* Inputs */
+        input[type="number"],
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 6px 10px;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+            -webkit-appearance: none;
+        }
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--accent);
+        }
+        select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+        }
+        select option {
+            background: #161b22;
+            color: var(--text);
+        }
+        input[type="color"] {
+            width: 32px;
+            height: 30px;
+            padding: 2px;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* Buttons */
+        button {
+            padding: 8px 14px;
+            background: #21262d;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.15s, border-color 0.15s;
+            text-align: center;
+        }
+        button:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        #restartBtn  { background: #1a3a6b; border-color: var(--blue); color: #a8d4ff; }
+        #restartBtn:hover  { background: #1f4a8a; }
+        #pauseBtn    { background: #2d1f00; border-color: #b45309; color: #fbbf24; }
+        #pauseBtn:hover    { background: #3d2b00; }
+        #createModelBtn { background: #0d2b16; border-color: #2a6039; color: #6ee7a0; }
+        #createModelBtn:hover { background: #133520; }
+
+        /* Range */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Canvas */
+        canvas { display: block; }
+        #simCanvas {
+            background-color: #050a12;
+            border-radius: 4px;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 2 / 1;
+            display: block;
+        }
+
+        /* Chart */
+        #chartContainer {
+            height: 280px;
+            background: #0d1117;
+            border-radius: 4px;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Stats */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(42,58,74,0.5);
+            font-size: 14px;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+        .stat-value { font-size: 14px; font-weight: 600; color: var(--text); }
+        .stat-bar { width: 100%; height: 3px; background: var(--border); border-radius: 1px; margin-top: 2px; overflow: hidden; }
+        .stat-bar-fill { height: 100%; border-radius: 1px; transition: width 0.3s ease; }
+
+        /* Custom Editor */
+        #customEditor { /* wrapper, no extra style needed */ }
+        .editor-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 12px 0 6px;
+        }
+        .editor-section-title:first-child { margin-top: 0; }
+
+        #networkCanvas {
+            background-color: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            width: 100%;
+            display: block;
+        }
+
+        /* Editor add buttons */
+        .btn-add {
+            font-size: 13px;
+            padding: 6px 10px;
+            background: #0d2b16;
+            border-color: #2a6039;
+            color: #6ee7a0;
+        }
+        .btn-add:hover { background: #133520; border-color: #3a8050; }
+
+        /* Edge row */
+        .edge-row {
+            background: #0d1117;
+            padding: 4px 6px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: nowrap;
+        }
+        .edge-row select { font-size: 13px; padding: 3px 4px; min-width: 0; flex: 1; }
+        .edge-row input[type="number"] { font-size: 13px; padding: 3px 4px; width: 48px; flex-shrink: 0; }
+        .edge-row .btn-remove {
+            width: 26px; height: 26px; padding: 0;
+            font-size: 16px; line-height: 1;
+            background: #2a0e0e; border-color: #6b2020; color: #f87171;
+            flex-shrink: 0;
+        }
+        .edge-row .btn-remove:hover { background: #3d1515; }
+
+        /* Node row */
+        .node-row {
+            display: flex; gap: 5px; margin-bottom: 5px; align-items: center;
+        }
+        .node-row input[type="text"]   { width: 38px; padding: 4px 6px; font-size: 13px; }
+        .node-row input[type="number"] { width: 54px; padding: 4px 6px; font-size: 13px; }
+        .node-row .btn-remove {
+            width: 26px; height: 26px; padding: 0;
+            font-size: 16px; line-height: 1;
+            background: #2a0e0e; border-color: #6b2020; color: #f87171;
+            flex-shrink: 0;
+        }
+        .node-row .btn-remove:hover { background: #3d1515; }
+
+        /* Misc */
+        .pop-display {
+            font-size: 13px;
+            color: var(--text-sub);
+            border-top: 1px solid var(--border);
+            padding-top: 8px;
+            margin-top: 6px;
+        }
+
+        /* Info button */
+        #paramsInfoBtn {
+            width: auto;
+            padding: 1px 7px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #21262d;
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            border-radius: 4px;
+            margin-left: auto;
+            cursor: pointer;
+            line-height: 1.4;
+            text-transform: none;
+        }
+        #paramsInfoBtn:hover { background: #30363d; color: var(--text); border-color: #8b949e; }
+
+        /* Params popup */
+        #paramsPopup {
+            display: none;
+            position: fixed;
+            background: #1c2128;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 16px;
+            z-index: 200;
+            min-width: 300px;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            font-size: 13px;
+        }
+        #paramsPopup.visible { display: block; }
+        #paramsPopup .popup-title {
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+        #paramsPopup table { border-collapse: collapse; width: 100%; }
+        #paramsPopup td { padding: 4px 0; vertical-align: top; }
+        #paramsPopup td:first-child {
+            font-weight: 700;
+            white-space: nowrap;
+            color: var(--accent);
+            padding-right: 12px;
+            font-size: 13px;
+        }
+        #paramsPopup td:last-child { color: var(--text); line-height: 1.4; }
+        .scroller-row {
+            display: flex; align-items: center; gap: 10px; padding: 0 2px;
+        }
+        .scroller-label {
+            font-size: 12px; color: var(--text-sub); white-space: nowrap;
+        }
+        .bottom-row {
+            display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;
+        }
+        .chart-col {
+            flex: 3; display: flex; flex-direction: column; gap: 6px; min-width: 300px;
+        }
+        .stats-col { flex: 1; min-width: 160px; }
+
+        .sim-wrapper { position: relative; border-radius: 4px; overflow: hidden; }
+        .sim-corner {
+            position: absolute; width: 14px; height: 14px;
+            border-color: #4a9eff; border-style: solid; z-index: 2; opacity: 0.6;
+        }
+        .sim-corner.tl { top:5px; left:5px;   border-width: 2px 0 0 2px; }
+        .sim-corner.tr { top:5px; right:5px;  border-width: 2px 2px 0 0; }
+        .sim-corner.bl { bottom:5px; left:5px;  border-width: 0 0 2px 2px; }
+        .sim-corner.br { bottom:5px; right:5px; border-width: 0 2px 2px 0; }
+
+        hr { border: 0; border-top: 1px solid var(--border); margin: 10px 0; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        @media (max-width: 900px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { flex: none; width: 100%; }
+            .bottom-row { flex-direction: column; }
+            .chart-col, .stats-col { width: 100%; }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="main-layout">
+    <div class="sidebar">
+        <!-- Model selector -->
+        <div class="panel">
+            <div class="panel-title">Modello Epidemiologico</div>
+            <div style="padding: 12px;">
+                <div class="control-group">
+                    <label for="modelSelect">Seleziona Modello</label>
+                    <select id="modelSelect">
+                        <option value="SIS">1. SIS</option>
+                        <option value="SIR">2. SIR</option>
+                        <option value="SEIS">3. SEIS</option>
+                        <option value="SEIR">4. SEIR</option>
+                        <option value="SEIRS">5. SEIRS</option>
+                        <option value="SEIRD" selected>6. SEIRD</option>
+                        <option value="SEIIRHD">7. SEIIRHD</option>
+                        <option value="CUSTOM">── Modello Personalizzato ──</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom editor -->
+        <div id="customEditor" style="display: none;">
+            <div class="panel">
+                <div class="panel-title">Editor Compartimenti</div>
+                <div style="padding: 12px;">
+                    <div class="editor-section-title">Compartimenti</div>
+                    <div id="compartmentList" style="margin-bottom: 8px;"></div>
+                    <button id="addCompBtn" class="btn-add">+ Aggiungi compartimento</button>
+                    
+                    <div class="editor-section-title" style="margin-top: 14px;">Flussi</div>
+                    <div id="flowList"></div>
+                    <button id="addFlowBtn" class="btn-add" style="margin-top: 4px;">+ Collega compartimenti</button>
+                    
+                    <div class="editor-section-title" style="margin-top: 14px;">Mappa Modello</div>
+                    <canvas id="networkCanvas" width="260" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standard inputs -->
+        <div id="standardInputs">
+            <div class="panel">
+                <div class="panel-title">Condizioni Iniziali</div>
+                <div id="initialConditions" style="border: none; border-radius: 0; background: transparent; padding: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="control-group">
+                            <label for="initS">Suscettibili (S₀)</label>
+                            <input type="number" id="initS" value="198" min="0" max="1000">
+                        </div>
+                        <div class="control-group">
+                            <label for="initI">Infetti (I₀)</label>
+                            <input type="number" id="initI" value="2" min="1" max="1000">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 0;">
+                <div class="panel-title">Parametri del Modello
+                    <button id="paramsInfoBtn" title="Descrizione parametri">ⓘ</button>
+                </div>
+                <div style="padding: 12px;">
+                    <div id="dynamicControls" style="border: none; background: transparent; padding: 0; margin: 0; display: grid; gap: 10px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel">
+            <div class="panel-title">Controlli Simulazione</div>
+            <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 8px;">
+                    <button id="pauseBtn" style="flex: 1;">Pausa</button>
+                    <button id="restartBtn" style="flex: 2;">▶ Avvia</button>
+                </div>
+                <button id="createModelBtn">+ Crea modello</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Simulation canvas -->
+        <div class="panel">
+            <div class="panel-title">Campo di Simulazione
+                <span style="margin-left: auto; font-size: 13px; color: var(--text-sub); font-weight: 400;" id="dayDisplay">Giorno 0</span>
+            </div>
+            <div style="padding: 10px 12px 12px; position: relative;">
+                <div class="sim-wrapper">
+                    <div class="sim-corner tl"></div>
+                    <div class="sim-corner tr"></div>
+                    <div class="sim-corner bl"></div>
+                    <div class="sim-corner br"></div>
+                    <canvas id="simCanvas" width="800" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart + stats -->
+        <div class="bottom-row">
+            <div class="chart-col">
+                <div class="panel">
+                    <div class="panel-title">Andamento Temporale</div>
+                    <div style="padding: 10px 12px 8px;">
+                        <div id="chartContainer">
+                            <canvas id="chartCanvas"></canvas>
+                        </div>
+                        <div class="scroller-row" style="margin-top: 8px;">
+                            <span class="scroller-label">◄ SCORRI ►</span>
+                            <input type="range" id="chartScroller" min="0" max="0" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-col">
+                <div class="panel" id="liveStats">
+                    <div class="panel-title">Dati Attuali</div>
+                    <div style="padding: 10px 14px 12px;">
+                        <div id="statsContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="paramsPopup"></div>
+
+<script>
+    // Configurazione iniziale
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+
+
+    const POPULATION = 200;
+    const INITIAL_INFECTED = 2;
+    let PARTICLE_RADIUS = 4; // Trasformato in let per poterlo variare dinamicamente
+    const SPEED = 2;
+
+    // Stati
+    const S = 'S', E = 'E', I = 'I', A = 'A', H = 'H', R = 'R', D = 'D';
+
+    // Colori associati
+    const COLORS = {
+        'S': '#3498db', 'E': '#f1c40f', 'I': '#e74c3c', 
+        'A': '#e67e22', 'H': '#9b59b6', 'R': '#2ecc71', 'D': '#7f8c8d'
+    };
+
+    const LABELS = {
+        'S': 'Suscettibili', 'E': 'Esposti', 'I': 'Infetti',
+        'A': 'Asintomatici', 'H': 'Ospedalizzati', 'R': 'Guariti', 'D': 'Deceduti'
+    };
+
+    // Mappatura dei parametri necessari per ogni modello e loro range/valore di default
+    const MODEL_PARAMS = {
+        'SIS': [
+            { id: 'beta',    sym: 'β',   desc: 'Tasso di trasmissione per contatto infettivo (S → I)',            min: 0, max: 1,    step: 0.01,   val: 0.5   },
+            { id: 'nu',      sym: 'ν',   desc: 'Tasso di guarigione — gli infetti tornano suscettibili (I → S)',   min: 0, max: 0.05, step: 0.001,  val: 0.005 }
+        ],
+        'SIR': [
+            { id: 'beta',    sym: 'β',   desc: 'Tasso di trasmissione per contatto infettivo (S → I)',            min: 0, max: 1,    step: 0.01,   val: 0.5   },
+            { id: 'nu',      sym: 'ν',   desc: 'Tasso di rimozione — guarigione o isolamento (I → R)',             min: 0, max: 0.05, step: 0.001,  val: 0.005 }
+        ],
+        'SEIS': [
+            { id: 'beta',    sym: 'β',   desc: 'Tasso di trasmissione per contatto infettivo (S → E)',            min: 0, max: 1,    step: 0.01,   val: 0.5   },
+            { id: 'alpha',   sym: 'α',   desc: 'Tasso di fine incubazione — esposti diventano infetti (E → I)',    min: 0, max: 0.05, step: 0.001,  val: 0.01  },
+            { id: 'nu',      sym: 'ν',   desc: 'Tasso di guarigione — gli infetti tornano suscettibili (I → S)',   min: 0, max: 0.05, step: 0.001,  val: 0.005 }
+        ],
+        'SEIR': [
+            { id: 'beta',    sym: 'β',   desc: 'Tasso di trasmissione per contatto infettivo (S → E)',            min: 0, max: 1,    step: 0.01,   val: 0.5   },
+            { id: 'alpha',   sym: 'α',   desc: 'Tasso di fine incubazione — esposti diventano infetti (E → I)',    min: 0, max: 0.05, step: 0.001,  val: 0.01  },
+            { id: 'gamma',   sym: 'γ',   desc: 'Tasso di guarigione con immunità permanente (I → R)',              min: 0, max: 0.05, step: 0.001,  val: 0.005 }
+        ],
+        'SEIRS': [
+            { id: 'beta',    sym: 'β',   desc: 'Tasso di trasmissione per contatto infettivo (S → E)',            min: 0, max: 1,    step: 0.01,   val: 0.5   },
+            { id: 'alpha',   sym: 'α',   desc: 'Tasso di fine incubazione — esposti diventano infetti (E → I)',    min: 0, max: 0.05, step: 0.001,  val: 0.01  },
+            { id: 'gamma',   sym: 'γ',   desc: 'Tasso di guarigione (I → R)',                                     min: 0, max: 0.05, step: 0.001,  val: 0.005 },
+            { id: 'delta',   sym: 'δ',   desc: 'Tasso di perdita dell\'immunità — i guariti tornano suscettibili (R → S)', min: 0, max: 0.01, step: 0.0001, val: 0.001 }
+        ],
+        'SEIRD': [
+            { id: 'beta',    sym: 'β',   desc: 'Tasso di trasmissione per contatto infettivo (S → E)',            min: 0, max: 1,    step: 0.01,   val: 0.5   },
+            { id: 'alpha',   sym: 'α',   desc: 'Tasso di fine incubazione — esposti diventano infetti (E → I)',    min: 0, max: 0.05, step: 0.001,  val: 0.01  },
+            { id: 'gamma',   sym: 'γ',   desc: 'Tasso di guarigione con immunità permanente (I → R)',              min: 0, max: 0.05, step: 0.001,  val: 0.005 },
+            { id: 'mu',      sym: 'μ',   desc: 'Tasso di mortalità per malattia (I → D)',                         min: 0, max: 0.02, step: 0.0001, val: 0.001 }
+        ],
+        'SEIIRHD': [
+            { id: 'beta_a',  sym: 'βₐ',  desc: 'Tasso di trasmissione degli asintomatici per contatto (A → S → E)',        min: 0, max: 1,    step: 0.01,   val: 0.2    },
+            { id: 'beta_s',  sym: 'βₛ',  desc: 'Tasso di trasmissione dei sintomatici per contatto (I → S → E)',           min: 0, max: 1,    step: 0.01,   val: 0.6    },
+            { id: 'f',       sym: 'f',   desc: 'Frazione di esposti che sviluppano sintomi — il resto è asintomatico (E → I)', min: 0, max: 1, step: 0.01,   val: 0.6    },
+            { id: 'alpha',   sym: 'α',   desc: 'Tasso di fine incubazione (E → I oppure E → A)',                            min: 0, max: 0.05, step: 0.001,  val: 0.01   },
+            { id: 'gamma_a', sym: 'γₐ',  desc: 'Tasso di guarigione degli asintomatici (A → R)',                            min: 0, max: 0.05, step: 0.001,  val: 0.008  },
+            { id: 'gamma_s', sym: 'γₛ',  desc: 'Tasso di guarigione dei sintomatici (I → R)',                               min: 0, max: 0.05, step: 0.001,  val: 0.005  },
+            { id: 'nu',      sym: 'ν',   desc: 'Tasso di ospedalizzazione dei sintomatici gravi (I → H)',                   min: 0, max: 0.02, step: 0.0001, val: 0.002  },
+            { id: 'mu',      sym: 'μ',   desc: 'Tasso di mortalità per malattia (I → D oppure H → D)',                      min: 0, max: 0.02, step: 0.0001, val: 0.0005 },
+            { id: 'gamma_H', sym: 'γₕ',  desc: 'Tasso di guarigione degli ospedalizzati (H → R)',                           min: 0, max: 0.05, step: 0.001,  val: 0.003  }
+        ]
+    };
+
+    let particles = [];
+    let animationId;
+    let chart;
+    let timeElapsed = 0;
+
+    // Funzione per generare i controlli HTML dinamicamente
+    function buildControls() {
+        const model = document.getElementById('modelSelect').value;
+        const container = document.getElementById('dynamicControls');
+        container.innerHTML = ''; 
+
+        const params = MODEL_PARAMS[model];
+        
+        if (params.length === 9) {
+            container.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        } else if (params.length >= 4) {
+            container.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        } else if (params.length === 3) {
+            container.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        } else {
+            container.style.gridTemplateColumns = '1fr 1fr';
+        }
+
+        params.forEach(param => {
+            const group = document.createElement('div');
+            group.className = 'control-group';
+
+            const label = document.createElement('label');
+            label.htmlFor = param.id;
+            label.textContent = param.sym;
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.id = param.id;
+            input.min = param.min;
+            input.max = param.max;
+            input.step = param.step;
+            input.value = param.val;
+
+            group.appendChild(label);
+            group.appendChild(input);
+            container.appendChild(group);
+        });
+
+        updateParamsPopup();
+    }
+
+    // Funzione di utilità per leggere il valore corrente di un parametro
+    function getParam(id) {
+        const el = document.getElementById(id);
+        return el ? parseFloat(el.value) : 0;
+    }
+
+    class Particle {
+        constructor(x, y, state) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * SPEED * 2;
+            this.vy = (Math.random() - 0.5) * SPEED * 2;
+            this.state = state;
+        }
+
+        move() {
+            if (this.state === D || this.state === H) return; 
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Rimbalzo con correzione posizionale per evitare il "wall-sticking"
+            if (this.x - PARTICLE_RADIUS < 0) {
+                this.x = PARTICLE_RADIUS;
+                this.vx *= -1;
+            } else if (this.x + PARTICLE_RADIUS > width) {
+                this.x = width - PARTICLE_RADIUS;
+                this.vx *= -1;
+            }
+
+            if (this.y - PARTICLE_RADIUS < 0) {
+                this.y = PARTICLE_RADIUS;
+                this.vy *= -1;
+            } else if (this.y + PARTICLE_RADIUS > height) {
+                this.y = height - PARTICLE_RADIUS;
+                this.vy *= -1;
+            }
+        }
+
+        draw(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, PARTICLE_RADIUS, 0, Math.PI * 2);
+            let color;
+            const model = document.getElementById('modelSelect').value;
+            if (model === 'CUSTOM') {
+                const node = customModel.nodes.find(n => n.id === this.state);
+                color = node ? node.color : '#fff';
+            } else {
+                color = COLORS[this.state] || '#fff';
+            }
+            ctx.fillStyle = color;
+            // Glow effect
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.closePath();
+        }
+    }
+
+    let isPaused = false;
+    let currentPopulation = 0;
+
+    function initParticles() {
+        particles = [];
+        const model = document.getElementById('modelSelect').value;
+        
+        // 1. Calcolo preventivo della popolazione per determinare la dimensione
+        if (model === 'CUSTOM') {
+            currentPopulation = customModel.nodes.reduce((sum, n) => sum + n.init, 0);
+        } else {
+            let s0 = Math.min(parseInt(document.getElementById('initS').value) || 0, 1000);
+            let i0 = Math.min(parseInt(document.getElementById('initI').value) || 0, 1000);
+            currentPopulation = s0 + i0;
+        }
+
+        // 2. Regolazione dinamica del raggio
+        if (currentPopulation <= 200) {
+            PARTICLE_RADIUS = 4;
+        } else if (currentPopulation >= 1000) {
+            PARTICLE_RADIUS = 2; // Raggio dimezzato per grandi folle
+        } else {
+            // Interpolazione lineare per popolazioni intermedie
+            PARTICLE_RADIUS = 4 - ((currentPopulation - 200) / 800) * 2;
+        }
+
+        // 3. Generazione particelle
+        if (model === 'CUSTOM') {
+            customModel.nodes.forEach(node => {
+                for (let i = 0; i < node.init; i++) {
+                    const x = Math.random() * (width - PARTICLE_RADIUS * 2) + PARTICLE_RADIUS;
+                    const y = Math.random() * (height - PARTICLE_RADIUS * 2) + PARTICLE_RADIUS;
+                    particles.push(new Particle(x, y, node.id));
+                }
+            });
+        } else {
+            let i0 = Math.min(parseInt(document.getElementById('initI').value) || 0, 1000);
+            const startState = ['SEIS', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model) ? E : I;
+            for (let i = 0; i < currentPopulation; i++) {
+                const x = Math.random() * (width - PARTICLE_RADIUS * 2) + PARTICLE_RADIUS;
+                const y = Math.random() * (height - PARTICLE_RADIUS * 2) + PARTICLE_RADIUS;
+                particles.push(new Particle(x, y, i < i0 ? startState : S));
+            }
+        }
+        if (chart) chart.options.scales.y.max = currentPopulation;
+    }
+    
+    function handleCollisions() {
+        const model = document.getElementById('modelSelect').value;
+
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const p1 = particles[i];
+                const p2 = particles[j];
+
+                if (p1.state === D || p2.state === D || p1.state === H || p2.state === H) continue;
+
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < PARTICLE_RADIUS * 2) {
+                    // BUG FIX: skip degenerate case (two particles on exact same position)
+                    if (dist === 0) continue;
+                    if (model === 'CUSTOM') {
+                        // LOGICA UNIVERSALE: Se esiste un arco "Per Contatto" da A a B,
+                        // la particella in stato A diventa B se tocca qualcuno già in stato B.
+                        customModel.edges.filter(e => e.type === 'contatto').forEach(edge => {
+                            if (p1.state === edge.from && p2.state === edge.to && Math.random() < edge.rate) p1.state = edge.to;
+                            if (p2.state === edge.from && p1.state === edge.to && Math.random() < edge.rate) p2.state = edge.to;
+                        });
+                    } else {
+                        const nextState = ['SEIS', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model) ? E : I;
+                        let infP1 = false, infP2 = false;
+                        if (model === 'SEIIRHD') {
+                            const ba = getParam('beta_a'), bs = getParam('beta_s');
+                            if (p1.state === A && p2.state === S && Math.random() < ba) infP1 = true;
+                            if (p1.state === I && p2.state === S && Math.random() < bs) infP1 = true;
+                            if (p2.state === A && p1.state === S && Math.random() < ba) infP2 = true;
+                            if (p2.state === I && p1.state === S && Math.random() < bs) infP2 = true;
+                        } else {
+                            const beta = getParam('beta'), canInf = (s) => s === I || s === A;
+                            if (canInf(p1.state) && p2.state === S && Math.random() < beta) infP1 = true;
+                            if (canInf(p2.state) && p1.state === S && Math.random() < beta) infP2 = true;
+                        }
+                        if (infP1) p2.state = nextState; if (infP2) p1.state = nextState;
+                    }
+
+                    const tempVx = p1.vx, tempVy = p1.vy;
+                    p1.vx = p2.vx; p1.vy = p2.vy; p2.vx = tempVx; p2.vy = tempVy;
+                    const overlap = (PARTICLE_RADIUS * 2 - dist + 0.1) / 2;
+                    const nx = dx / dist, ny = dy / dist;
+                    p1.x += nx * overlap; p1.y += ny * overlap;
+                    p2.x -= nx * overlap; p2.y -= ny * overlap;
+                }
+            }
+        }
+    }
+
+    function updateInfections() {
+        const model = document.getElementById('modelSelect').value;
+        particles.forEach(p => {
+            const r = Math.random();
+            if (model === 'CUSTOM') {
+                // LOGICA UNIVERSALE: Transizioni spontanee temporali
+                customModel.edges.filter(e => e.type === 'spontaneo').forEach(edge => {
+                    if (p.state === edge.from && r < edge.rate) p.state = edge.to;
+                });
+            } else {
+                if (p.state === S || p.state === D) return;
+                if (model === 'SIS') { if (p.state === I && r < getParam('nu')) p.state = S; }
+                else if (model === 'SIR') { if (p.state === I && r < getParam('nu')) p.state = R; }
+                else if (model === 'SEIS') {
+                    if (p.state === E && r < getParam('alpha')) p.state = I;
+                    else if (p.state === I && r < getParam('nu')) p.state = S;
+                }
+                else if (model === 'SEIR') {
+                    if (p.state === E && r < getParam('alpha')) p.state = I;
+                    else if (p.state === I && r < getParam('gamma')) p.state = R;
+                }
+                else if (model === 'SEIRS') {
+                    if (p.state === E && r < getParam('alpha')) p.state = I;
+                    else if (p.state === I && r < getParam('gamma')) p.state = R;
+                    else if (p.state === R && r < getParam('delta')) p.state = S;
+                }
+                else if (model === 'SEIRD') {
+                    if (p.state === E && r < getParam('alpha')) p.state = I;
+                    else if (p.state === I) {
+                        const g = getParam('gamma'), m = getParam('mu');
+                        if (r < g) p.state = R; else if (r < g + m) p.state = D;
+                    }
+                }
+                else if (model === 'SEIIRHD') {
+                    if (p.state === E && r < getParam('alpha')) p.state = Math.random() < getParam('f') ? I : A;
+                    else if (p.state === A && r < getParam('gamma_a')) p.state = R;
+                    else if (p.state === I) {
+                        const gs = getParam('gamma_s'), m = getParam('mu'), n = getParam('nu');
+                        if (r < gs) p.state = R; else if (r < gs + m) p.state = D; else if (r < gs + m + n) p.state = H;
+                    }
+                    else if (p.state === H) {
+                        const gh = getParam('gamma_H'), m = getParam('mu');
+                        if (r < gh) p.state = R; else if (r < gh + m) p.state = D;
+                    }
+                }
+            }
+        });
+    }
+
+    function initChart() {
+        const ctxChart = document.getElementById('chartCanvas').getContext('2d');
+        if (chart) chart.destroy();
+
+        const model = document.getElementById('modelSelect').value;
+        let datasets = [];
+
+        if (model === 'CUSTOM') {
+            datasets = customModel.nodes.map(node => ({
+                label: node.id, // Usiamo l'ID come etichetta
+                borderColor: node.color,
+                backgroundColor: node.color,
+                data: [],
+                pointRadius: 0,
+                fill: false,
+                tension: 0.1
+            }));
+        } else {
+            const activeStates = ['S', 'I'];
+            if (['SIR', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('R');
+            if (['SEIS', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('E');
+            if (['SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('D');
+            if (model === 'SEIIRHD') { activeStates.push('A'); activeStates.push('H'); }
+
+            datasets = activeStates.map(state => ({
+                label: LABELS[state],
+                borderColor: COLORS[state],
+                backgroundColor: COLORS[state],
+                data: [],
+                pointRadius: 0,
+                fill: false,
+                tension: 0.1
+            }));
+        }
+
+        chart = new Chart(ctxChart, {
+            type: 'line',
+            data: { labels: [], datasets: datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                plugins: {
+                    legend: { 
+                        display: true,
+                        labels: {
+                            color: '#e6edf3',
+                            font: { family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif", size: 12 },
+                            boxWidth: 10,
+                            padding: 12
+                        }
+                    }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        max: currentPopulation,
+                        grid: { color: 'rgba(42,58,74,0.6)', lineWidth: 1 },
+                        ticks: { color: '#8b949e', font: { size: 11 } },
+                        border: { color: '#2a3a4a' }
+                    }, 
+                    x: { 
+                        display: true, 
+                        title: { 
+                            display: true, 
+                            text: 'Giorni', 
+                            color: '#8b949e',
+                            font: { size: 12 }
+                        },
+                        min: 0,
+                        max: 100,
+                        grid: { color: 'rgba(42,58,74,0.4)', lineWidth: 1 },
+                        ticks: { color: '#8b949e', font: { size: 11 } },
+                        border: { color: '#2a3a4a' }
+                    } 
+                }
+            }
+        });
+    }
+
+    function getStats() {
+        const model = document.getElementById('modelSelect').value;
+        let stats = {};
+        
+        if (model === 'CUSTOM') {
+            customModel.nodes.forEach(n => stats[n.id] = 0);
+        } else {
+            stats = { S:0, E:0, I:0, A:0, H:0, R:0, D:0 };
+        }
+        
+        particles.forEach(p => {
+            if (stats[p.state] !== undefined) stats[p.state]++;
+        });
+        return stats;
+    }
+
+    function updateLiveStats(stats) {
+        const statsContent = document.getElementById('statsContent');
+        const model = document.getElementById('modelSelect').value;
+        let html = '';
+        
+        const makeRow = (color, labelText, value) => {
+            const pct = currentPopulation > 0 ? (value / currentPopulation * 100).toFixed(1) : 0;
+            return `<div class="stat-row">
+                <div class="stat-label">
+                    <span style="color:${color}; font-size:10px;">■</span>
+                    <span style="color:${color};">${labelText}</span>
+                </div>
+                <span class="stat-value">${value}</span>
+            </div>
+            <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%; background:${color};"></div></div>`;
+        };
+        
+        if (model === 'CUSTOM') {
+            customModel.nodes.forEach(node => {
+                html += makeRow(node.color, node.id, stats[node.id] || 0);
+            });
+        } else {
+            const activeStates = ['S', 'I'];
+            if (['SIR', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('R');
+            if (['SEIS', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('E');
+            if (['SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('D');
+            if (model === 'SEIIRHD') { activeStates.push('A'); activeStates.push('H'); }
+
+            activeStates.forEach(state => {
+                html += makeRow(COLORS[state], LABELS[state], stats[state] || 0);
+            });
+        }
+        
+        html += `<div class="pop-display">POPOLAZIONE: ${currentPopulation}</div>`;
+        statsContent.innerHTML = html;
+    }
+
+    function canSystemChange(stats) {
+        const model = document.getElementById('modelSelect').value;
+        if (model === 'CUSTOM') {
+            // Nel modello personalizzato, il sistema cambia se esiste un arco con rate > 0 
+            // e ci sono particelle nel compartimento di origine
+            return customModel.edges.some(edge => {
+                if (edge.rate <= 0 || stats[edge.from] <= 0) return false;
+                if (edge.type === 'spontaneo') return true;
+                if (edge.type === 'contatto' && stats[edge.to] > 0) return true;
+                return false;
+            });
+        }
+        
+        // Logica per i modelli predefiniti (come prima)
+        const infectious = stats.I > 0 || stats.A > 0;
+        if (stats.S > 0 && infectious) {
+            if (model === 'SEIIRHD' && (getParam('beta_s') > 0 || getParam('beta_a') > 0)) return true;
+            if (model !== 'SEIIRHD' && getParam('beta') > 0) return true;
+        }
+        if (model === 'SIS' && stats.I > 0 && getParam('nu') > 0) return true;
+        if (model === 'SIR' && stats.I > 0 && getParam('nu') > 0) return true;
+        if (model === 'SEIS') {
+            if (stats.E > 0 && getParam('alpha') > 0) return true;
+            if (stats.I > 0 && getParam('nu') > 0) return true;
+        }
+        if (model === 'SEIR') {
+            if (stats.E > 0 && getParam('alpha') > 0) return true;
+            if (stats.I > 0 && getParam('gamma') > 0) return true;
+        }
+        if (model === 'SEIRS') {
+            if (stats.E > 0 && getParam('alpha') > 0) return true;
+            if (stats.I > 0 && getParam('gamma') > 0) return true;
+            if (stats.R > 0 && getParam('delta') > 0) return true; 
+        }
+        if (model === 'SEIRD') {
+            if (stats.E > 0 && getParam('alpha') > 0) return true;
+            if (stats.I > 0 && (getParam('gamma') > 0 || getParam('mu') > 0)) return true;
+        }
+        if (model === 'SEIIRHD') {
+            if (stats.E > 0 && getParam('alpha') > 0) return true;
+            if (stats.A > 0 && getParam('gamma_a') > 0) return true;
+            if (stats.I > 0 && (getParam('gamma_s') > 0 || getParam('mu') > 0 || getParam('nu') > 0)) return true;
+            if (stats.H > 0 && (getParam('gamma_H') > 0 || getParam('mu') > 0)) return true;
+        }
+        return false;
+    }
+
+    function animate() {
+        if (isPaused) {
+            animationId = requestAnimationFrame(animate);
+            return;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+        handleCollisions();
+        updateInfections();
+        particles.forEach(p => { p.move(); p.draw(ctx); });
+
+        timeElapsed++;
+        if (timeElapsed % 10 === 0) {
+            const stats = getStats();
+            updateLiveStats(stats);
+            
+            const giornoAttuale = timeElapsed / 10;
+            document.getElementById('dayDisplay').textContent = 'Giorno ' + Math.floor(giornoAttuale);
+            chart.data.labels.push(giornoAttuale);
+            
+            chart.data.datasets.forEach(dataset => {
+                const stateKey = Object.keys(LABELS).find(k => LABELS[k] === dataset.label) || dataset.label;
+                dataset.data.push(stats[stateKey] || 0);
+            });
+
+            const scroller = document.getElementById('chartScroller');
+            const windowSize = 100; // Ampiezza della finestra mobile
+            
+            // Controlliamo se l'utente ha la barra trascinata fino in fondo (o quasi)
+            const isAtEnd = parseInt(scroller.value) >= parseInt(scroller.max) - 1;
+
+            // Aggiorniamo il massimo possibile in cui poter scorrere
+            const maxScroll = Math.max(0, Math.floor(giornoAttuale) - windowSize);
+            scroller.max = maxScroll;
+
+            // Se l'utente sta "seguendo" la diretta, scorriamo la scala dell'asse X
+            if (isAtEnd || parseInt(scroller.max) === 0) {
+                scroller.value = maxScroll;
+                chart.options.scales.x.min = maxScroll;
+                chart.options.scales.x.max = maxScroll + windowSize;
+            }
+
+            chart.update();
+
+            const model = document.getElementById('modelSelect').value;
+            const virusEradicated = (model !== 'CUSTOM') && (stats.E === 0 && stats.I === 0 && stats.A === 0 && stats.H === 0);
+            const frozenSystem = !canSystemChange(stats);
+
+            if (frozenSystem || (model !== 'CUSTOM' && virusEradicated)) {
+                document.getElementById('pauseBtn').textContent = "Terminato";
+                document.getElementById('pauseBtn').disabled = true;
+
+                return; 
+            }
+        }
+        animationId = requestAnimationFrame(animate);
+    }
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const btn = document.getElementById('pauseBtn');
+        if (isPaused) {
+            btn.textContent = "Riprendi";
+            btn.style.background = "#0d2b16";
+            btn.style.borderColor = "#2a6039";
+            btn.style.color = "#6ee7a0";
+        } else {
+            btn.textContent = "Pausa";
+            btn.style.background = "#2d1f00";
+            btn.style.borderColor = "#b45309";
+            btn.style.color = "#fbbf24";
+        }
+    }
+
+    function startSimulation() {
+        if (animationId) cancelAnimationFrame(animationId);
+        
+        isPaused = false;
+        const pauseBtn = document.getElementById('pauseBtn');
+        pauseBtn.textContent = "Pausa";
+        pauseBtn.style.background = "#2d1f00";
+        pauseBtn.style.borderColor = "#b45309";
+        pauseBtn.style.color = "#fbbf24";
+        pauseBtn.disabled = false;
+
+        timeElapsed = 0;
+        document.getElementById('dayDisplay').textContent = 'Giorno 0';
+        
+        const scroller = document.getElementById('chartScroller');
+        if (scroller) {
+            scroller.min = 0;
+            scroller.max = 0;
+            scroller.value = 0;
+        }
+
+        initParticles();
+        initChart();
+        animate();
+    }
+
+    // Struttura dati per il Modello Personalizzato
+    let customModel = {
+        nodes: [{ id: 'S', label: 'Suscettibili', color: COLORS['S'], init: 198 }, { id: 'I', label: 'Infetti', color: COLORS['I'], init: 2 }],
+        edges: []
+    };
+
+    // Gestione dell'interfaccia Editor
+    function toggleEditorView() {
+        const model = document.getElementById('modelSelect').value;
+        const editor = document.getElementById('customEditor');
+        const standardInputs = document.getElementById('standardInputs');
+        
+        if (model === 'CUSTOM') {
+            editor.style.display = 'block';
+            standardInputs.style.display = 'none';
+            renderEditor();
+        } else {
+            editor.style.display = 'none';
+            standardInputs.style.display = 'block';
+            buildControls();
+            updateParamsPopup();
+        }
+    }
+
+    function renderEditor() {
+        const nodeDiv = document.getElementById('compartmentList');
+        const edgeDiv = document.getElementById('flowList');
+        nodeDiv.innerHTML = '';
+        edgeDiv.innerHTML = '';
+
+        // Render Nodi
+        customModel.nodes.forEach((node, index) => {
+            const div = document.createElement('div');
+            div.className = 'node-row';
+            div.innerHTML = `
+                <input type="text" value="${node.id}" onchange="updateNode(${index}, 'id', this.value)">
+                <input type="color" value="${node.color}" onchange="updateNode(${index}, 'color', this.value)">
+                <input type="number" value="${node.init}" onchange="updateNode(${index}, 'init', this.value)">
+                <button class="btn-remove" onclick="removeNode(${index})">×</button>
+            `;
+            nodeDiv.appendChild(div);
+        });
+
+        // Render Archi (Frecce)
+        customModel.edges.forEach((edge, index) => {
+            // Un nodo in 'from' è visibile se ha ancora almeno una destinazione possibile, o se è già l'origine corrente
+            const availableFromNodes = customModel.nodes.filter(n => {
+                if (n.id === edge.from) return true;
+                const existingTargets = customModel.edges.filter(e => e.from === n.id).map(e => e.to);
+                return existingTargets.length < customModel.nodes.length - 1;
+            });
+
+            // Per 'to', filtriamo il nodo se stesso e quelli a cui l'origine ha già inviato (eccetto quello attualmente selezionato)
+            const currentTargets = customModel.edges.filter(e => e.from === edge.from && e !== edge).map(e => e.to);
+            const availableToNodes = customModel.nodes.filter(n => n.id !== edge.from && !currentTargets.includes(n.id));
+
+            const div = document.createElement('div');
+            div.className = 'edge-row';
+            div.innerHTML = `
+                <select onchange="updateEdge(${index}, 'from', this.value)">
+                    ${availableFromNodes.map(n => `<option value="${n.id}" ${n.id === edge.from ? 'selected' : ''}>${n.id}</option>`).join('')}
+                </select>
+                <span style="color: var(--accent); font-size:14px;">→</span>
+                <select onchange="updateEdge(${index}, 'to', this.value)">
+                    ${availableToNodes.map(n => `<option value="${n.id}" ${n.id === edge.to ? 'selected' : ''}>${n.id}</option>`).join('')}
+                </select>
+                <select onchange="updateEdge(${index}, 'type', this.value)" style="flex:1;">
+                    <option value="spontaneo" ${edge.type === 'spontaneo' ? 'selected' : ''}>Spon.</option>
+                    <option value="contatto" ${edge.type === 'contatto' ? 'selected' : ''}>Cont.</option>
+                </select>
+                <input type="number" min="0" max="1" step="0.01" value="${edge.rate}" style="width:48px;" oninput="updateEdge(${index}, 'rate', this.value)">
+                <button class="btn-remove" onclick="removeEdge(${index})">×</button>
+            `;
+            edgeDiv.appendChild(div);
+    });
+    
+    drawNetwork();
+}
+
+// Funzioni per disegnare la mappa del modello (Layout ad albero/gerarchico)
+function drawNetwork() {
+    const netCanvas = document.getElementById('networkCanvas');
+    if (!netCanvas) return;
+    const netCtx = netCanvas.getContext('2d');
+    const w = netCanvas.width;
+    
+    const nodes = customModel.nodes;
+    const edges = customModel.edges;
+    if (nodes.length === 0) return;
+    
+    // 1. Calcolo profondità (gerarchia) tramite esplorazione da cima a fondo (BFS)
+    const adj = {};
+    nodes.forEach(n => adj[n.id] = []);
+    edges.forEach(e => adj[e.from].push(e.to));
+    
+    const depths = {};
+    nodes.forEach(n => depths[n.id] = -1);
+    
+    // Partiamo sempre dal primo nodo impostato dall'utente
+    let queue = [nodes[0].id];
+    depths[nodes[0].id] = 0;
+    
+    while(queue.length > 0) {
+        let curr = queue.shift();
+        adj[curr].forEach(neighbor => {
+            if(depths[neighbor] === -1) {
+                depths[neighbor] = depths[curr] + 1;
+                queue.push(neighbor);
+            }
+        });
+    }
+    
+    // Assegna profondità 0 ai compartimenti non raggiungibili dal primo 
+    // (es. se crei un secondo flusso totalmente separato)
+    nodes.forEach(n => {
+        if(depths[n.id] === -1) depths[n.id] = 0;
+    });
+
+    // 2. Raggruppa i nodi per livello (profondità)
+    const levels = {};
+    let maxDepth = 0;
+    nodes.forEach(n => {
+        const d = depths[n.id];
+        if(!levels[d]) levels[d] = [];
+        levels[d].push(n);
+        if(d > maxDepth) maxDepth = d;
+    });
+
+    // 3. Adatta altezza del canvas in base alla ramificazione
+    const topMargin = 30;
+    const verticalSpacing = 60;
+    const reqHeight = topMargin * 2 + maxDepth * verticalSpacing;
+    netCanvas.height = Math.max(200, reqHeight);
+    const h = netCanvas.height;
+    
+    netCtx.clearRect(0, 0, w, h);
+    netCtx.font = 'bold 13px Arial';
+    
+    // 4. Assegna le coordinate finali 
+    const nodePositions = {};
+    for(let d = 0; d <= maxDepth; d++) {
+        if(!levels[d]) continue;
+        const count = levels[d].length;
+        levels[d].forEach((node, idx) => {
+            nodePositions[node.id] = {
+                x: (w / (count + 1)) * (idx + 1),
+                y: topMargin + d * verticalSpacing,
+                color: node.color
+            };
+        });
+    }
+
+    // 5. Disegna gli archi
+    edges.forEach(edge => {
+        const posFrom = nodePositions[edge.from];
+        const posTo = nodePositions[edge.to];
+        if (!posFrom || !posTo) return;
+        
+        const dx = posTo.x - posFrom.x;
+        const dy = posTo.y - posFrom.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Stabilisce quando curvare un tratto 
+        // Si curva se c'è un doppio senso o se la freccia salta un livello (o torna in alto)
+        const hasReverse = edges.some(e => e.from === edge.to && e.to === edge.from);
+        const isBackwardOrSkip = depths[edge.to] <= depths[edge.from] || Math.abs(depths[edge.to] - depths[edge.from]) > 1;
+        
+        let curveOffset = 0;
+        if (hasReverse) curveOffset = 18;
+        else if (isBackwardOrSkip) curveOffset = 45; // Curva larga per deviare intorno ai nodi centrali
+        
+        const nx = -dy / dist;
+        const ny = dx / dist;
+        const midX = (posFrom.x + posTo.x) / 2;
+        const midY = (posFrom.y + posTo.y) / 2;
+        const cpX = midX + nx * curveOffset;
+        const cpY = midY + ny * curveOffset;
+        
+        const angleEnd = Math.atan2(posTo.y - cpY, posTo.x - cpX);
+        
+        const textWidth = netCtx.measureText(edge.to).width;
+        const rectW = Math.max(34, textWidth + 12);
+        const rectH = 22;
+        
+        const absCos = Math.abs(Math.cos(angleEnd));
+        const absSin = Math.abs(Math.sin(angleEnd));
+        const distToEdgeX = (rectW / 2) / Math.max(absCos, 0.001);
+        const distToEdgeY = (rectH / 2) / Math.max(absSin, 0.001);
+        const targetOffset = Math.min(distToEdgeX, distToEdgeY) + 3; 
+
+        const startX = posFrom.x;
+        const startY = posFrom.y;
+        const endX = posTo.x - targetOffset * Math.cos(angleEnd);
+        const endY = posTo.y - targetOffset * Math.sin(angleEnd);
+        
+        netCtx.beginPath();
+        netCtx.moveTo(startX, startY);
+        if (curveOffset > 0) {
+            netCtx.quadraticCurveTo(cpX, cpY, endX, endY);
+        } else {
+            netCtx.lineTo(endX, endY);
+        }
+        
+        netCtx.strokeStyle = '#00aaff';
+        netCtx.setLineDash(edge.type === 'contatto' ? [5, 5] : []);
+        netCtx.lineWidth = 2;
+        netCtx.stroke();
+        
+        const headlen = 8;
+        netCtx.beginPath();
+        netCtx.moveTo(endX, endY);
+        netCtx.lineTo(endX - headlen * Math.cos(angleEnd - Math.PI / 6), endY - headlen * Math.sin(angleEnd - Math.PI / 6));
+        netCtx.lineTo(endX - headlen * Math.cos(angleEnd + Math.PI / 6), endY - headlen * Math.sin(angleEnd + Math.PI / 6));
+        netCtx.lineTo(endX, endY);
+        netCtx.fillStyle = netCtx.strokeStyle;
+        netCtx.fill();
+        netCtx.setLineDash([]);
+    });
+    
+    // 6. Disegna i nodi (Rettangoli arrotondati adattivi)
+    nodes.forEach(node => {
+        const pos = nodePositions[node.id];
+        const textWidth = netCtx.measureText(node.id).width;
+        const rectW = Math.max(34, textWidth + 12);
+        const rectH = 22;
+        const rectX = pos.x - rectW / 2;
+        const rectY = pos.y - rectH / 2;
+        
+        netCtx.beginPath();
+        if (netCtx.roundRect) {
+            netCtx.roundRect(rectX, rectY, rectW, rectH, 6);
+        } else {
+            netCtx.rect(rectX, rectY, rectW, rectH); // Fallback browser obsoleti
+        }
+        netCtx.fillStyle = pos.color;
+        netCtx.fill();
+        netCtx.strokeStyle = '#333';
+        netCtx.lineWidth = 1;
+        netCtx.stroke();
+        
+        netCtx.fillStyle = '#c8d8e8';
+        netCtx.textAlign = 'center';
+        netCtx.textBaseline = 'middle';
+        netCtx.fillText(node.id, pos.x, pos.y);
+    });
+}
+
+// Sequenza colori predefinita
+const PREDEFINED_COLORS = [
+    '#3498db', // Blu (S)
+    '#e74c3c', // Rosso (I)
+    '#2ecc71', // Verde
+    '#f1c40f', // Giallo
+    '#ff9ff3', // Rosa
+    '#48dbfb', // Celeste
+    '#ff9f43', // Arancione
+    '#9b59b6', // Viola
+    '#795548', // Marrone
+    '#f5f5dc', // Beige
+    '#ffffff', // Bianco
+    '#000000'  // Nero
+];
+
+function getNextColor(index) {
+    if (index < PREDEFINED_COLORS.length) {
+        return PREDEFINED_COLORS[index];
+    }
+    // Colori casuali di fallback se si superano i 12 compartimenti
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+}
+
+// Funzioni di editing
+window.updateNode = (idx, field, val) => { 
+    if (field === 'id') {
+        const oldId = customModel.nodes[idx].id;
+        customModel.nodes[idx].id = val;
+        // Aggiorna anche gli archi che puntavano al vecchio nome
+        customModel.edges.forEach(edge => {
+            if (edge.from === oldId) edge.from = val;
+            if (edge.to === oldId) edge.to = val;
+        });
+        renderEditor(); // Ridisegna l'editor per aggiornare le tendine
+    } else {
+        customModel.nodes[idx][field] = (field === 'init' ? parseInt(val) : val); 
+        drawNetwork();
+    }
+};
+
+window.removeNode = (idx) => { 
+    const removedId = customModel.nodes[idx].id;
+    customModel.nodes.splice(idx, 1); 
+    customModel.edges = customModel.edges.filter(e => e.from !== removedId && e.to !== removedId);
+    renderEditor(); 
+};
+
+window.addCompartment = () => {
+    let newId = '';
+    let charCode = 65; // Parte dalla lettera 'A'
+    
+    // Scorre l'alfabeto finché non trova una lettera non ancora utilizzata
+    while (customModel.nodes.some(n => n.id === String.fromCharCode(charCode))) {
+        charCode++;
+    }
+    
+    // Se esaurisce l'alfabeto passa a un nome numerico casuale
+    newId = charCode <= 90 ? String.fromCharCode(charCode) : 'N' + Math.floor(Math.random() * 1000);
+    
+    customModel.nodes.push({ id: newId, label: 'Nuovo', color: getNextColor(customModel.nodes.length), init: 0 });
+    renderEditor();
+};
+
+window.addEdge = () => {
+    // Troviamo la prima coppia (from, to) valida e non ancora utilizzata
+    for (let i = 0; i < customModel.nodes.length; i++) {
+        const fromId = customModel.nodes[i].id;
+        const existingTargets = customModel.edges.filter(e => e.from === fromId).map(e => e.to);
+        const possibleTargets = customModel.nodes.filter(n => n.id !== fromId && !existingTargets.includes(n.id));
+        
+        if (possibleTargets.length > 0) {
+            customModel.edges.push({ from: fromId, to: possibleTargets[0].id, type: 'spontaneo', rate: 0.1 });
+            renderEditor();
+            return;
+        }
+    }
+    alert("Hai già creato tutti i flussi possibili tra i compartimenti esistenti.");
+};
+
+window.removeEdge = (idx) => { customModel.edges.splice(idx, 1); renderEditor(); };
+
+window.updateEdge = (idx, field, val) => { 
+    customModel.edges[idx][field] = (field === 'rate' ? parseFloat(val) : val); 
+    
+    if (field === 'from') {
+        const newFrom = customModel.edges[idx].from;
+        const otherTargets = customModel.edges.filter((e, i) => i !== idx && e.from === newFrom).map(e => e.to);
+        const availableTargets = customModel.nodes.filter(n => n.id !== newFrom && !otherTargets.includes(n.id));
+        
+        if (availableTargets.length > 0) {
+            // Se la destinazione attuale non è valida per la nuova origine, la aggiorniamo
+            if (newFrom === customModel.edges[idx].to || otherTargets.includes(customModel.edges[idx].to)) {
+                customModel.edges[idx].to = availableTargets[0].id;
+            }
+        }
+        renderEditor();
+    } else if (field === 'to' || field === 'type') {
+        renderEditor();
+    } else {
+        drawNetwork();
+    }
+};
+
+    // Event Listeners aggiornati
+    document.getElementById('createModelBtn').addEventListener('click', () => {
+        document.getElementById('modelSelect').value = 'CUSTOM';
+        toggleEditorView();
+    });
+
+    document.getElementById('modelSelect').addEventListener('change', toggleEditorView);
+    document.getElementById('addCompBtn').addEventListener('click', addCompartment);
+    document.getElementById('addFlowBtn').addEventListener('click', addEdge);
+
+    document.getElementById('restartBtn').addEventListener('click', startSimulation);
+    document.getElementById('pauseBtn').addEventListener('click', togglePause);
+
+    // Logica per aggiornare la visuale del grafico muovendo lo slider
+    const chartScroller = document.getElementById('chartScroller');
+    if (chartScroller) {
+        chartScroller.addEventListener('input', (e) => {
+            const startDay = parseInt(e.target.value);
+            const windowSize = 100;
+            if (chart) {
+                chart.options.scales.x.min = startDay;
+                chart.options.scales.x.max = startDay + windowSize;
+                chart.update();
+            }
+        });
+    }
+
+    // Popup informazioni parametri
+    function updateParamsPopup() {
+        const model = document.getElementById('modelSelect').value;
+        const popup = document.getElementById('paramsPopup');
+        const params = MODEL_PARAMS[model];
+        if (!params) { popup.innerHTML = ''; return; }
+        let html = `<div class="popup-title">${model} &mdash; Parametri</div><table>`;
+        params.forEach(p => {
+            html += `<tr><td>${p.sym}</td><td>${p.desc}</td></tr>`;
+        });
+        html += '</table>';
+        popup.innerHTML = html;
+    }
+
+    document.getElementById('paramsInfoBtn').addEventListener('click', function(e) {
+        const popup = document.getElementById('paramsPopup');
+        const rect = this.getBoundingClientRect();
+        popup.style.top  = (rect.bottom + 6) + 'px';
+        // Allinea a destra del bottone, ma non uscire dallo schermo
+        const left = Math.min(rect.left, window.innerWidth - 396);
+        popup.style.left = left + 'px';
+        popup.classList.toggle('visible');
+        e.stopPropagation();
+    });
+
+    document.addEventListener('click', function() {
+        document.getElementById('paramsPopup').classList.remove('visible');
+    });
+
+    // Inizializzazione
+    toggleEditorView();
+    startSimulation();
+</script>
+
+</body>
+</html>
