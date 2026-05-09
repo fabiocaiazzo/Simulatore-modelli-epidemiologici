@@ -325,6 +325,37 @@
             font-size: 13px;
         }
         #paramsPopup.visible { display: block; }
+
+        /* Modal per Impostazioni Nodo */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+            width: 90%; max-width: 450px; padding: 20px; color: var(--text);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-body { display: flex; flex-direction: column; gap: 12px; }
+        .setting-row { display: flex; flex-direction: column; gap: 4px; }
+        .setting-row label { font-size: 12px; color: var(--text-sub); }
+        .overflow-rule { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+
+        .btn-icon {
+            background: transparent; border: none; color: var(--text-sub);
+            cursor: pointer; padding: 2px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; transition: color 0.15s, background 0.15s; width: auto;
+        }
+        .btn-icon:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+        
+        .btn-close-modal {
+            background: transparent; border: 1px solid transparent; color: var(--text-sub);
+            font-size: 20px; cursor: pointer; padding: 0; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 4px; transition: 0.15s;
+        }
+        .btn-close-modal:hover { color: var(--text); background: rgba(255,255,255,0.1); border-color: var(--border); }
+
         #paramsPopup .popup-title {
             font-weight: 700;
             font-size: 12px;
@@ -402,7 +433,8 @@
                         <option value="SEIRS">5. SEIRS</option>
                         <option value="SEIRD" selected>6. SEIRD</option>
                         <option value="SEIIRHD">7. SEIIRHD</option>
-                        <option value="CUSTOM">── Modello Personalizzato ──</option>
+                        <option value="TEST">8. Test (Preimpostato)</option>
+                        <option value="CUSTOM">Modello Personalizzato</option>
                     </select>
                 </div>
             </div>
@@ -413,14 +445,33 @@
             <div class="panel">
                 <div class="panel-title">Editor Compartimenti</div>
                 <div style="padding: 12px;">
-                    <div class="editor-section-title">Compartimenti</div>
+                    <div class="editor-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        Compartimenti
+                        <button class="btn-icon" title="Impostazioni Compartimenti" onclick="openNodeSettings()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        </button>
+                    </div>
                     <div id="compartmentList" style="margin-bottom: 8px;"></div>
                     <button id="addCompBtn" class="btn-add">+ Aggiungi compartimento</button>
                     
-                    <div class="editor-section-title" style="margin-top: 14px;">Flussi</div>
+                    <div class="editor-section-title" style="margin-top: 14px; display: flex; align-items: center; gap: 6px;">
+                        Flussi
+                        <span style="cursor:help; background:#21262d; border:1px solid var(--border); border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:var(--text-sub);" title="Tasso (Rate): Probabilità di transizione.&#10;&#10;• SPONTANEO (avviene nel tempo, senza contatto): Usa valori MOLTO BASSI (es. 0.005 - 0.02) o il passaggio avverrà quasi all'istante.&#10;• CONTATTO (avviene sbattendo contro un'altra particella): Usa valori MEDI o ALTI (es. 0.2 - 0.8).">i</span>
+                    </div>
                     <div id="flowList"></div>
                     <button id="addFlowBtn" class="btn-add" style="margin-top: 4px;">+ Collega compartimenti</button>
                     
+                    <div class="editor-section-title" style="margin-top: 14px; display: flex; align-items: center; gap: 6px;">
+                        Demografia (Nascite e Risorse)
+                        <span style="cursor:help; background:#21262d; border:1px solid var(--border); border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:var(--text-sub);" title="Se due particelle si toccano, possono generare una nuova particella.&#10;• Usa probabilità bassissime (es. 0.002 - 0.008) o riempirai lo schermo istantaneamente.&#10;• Il limite di Popolazione Massima impedisce la creazione di nuove particelle quando le risorse sono esaurite (prevenendo il crash del browser).">i</span>
+                    </div>
+                    <div class="node-row" style="margin-bottom: 8px;">
+                        <label style="font-size: 12px; color: var(--text-sub); flex:1;">Popolazione Massima Totale:</label>
+                        <input type="number" id="globalMaxPop" value="1500" style="width: 80px;" onchange="updateGlobalMaxPop(this.value)">
+                    </div>
+                    <div id="birthList"></div>
+                    <button class="btn-add" onclick="addBirth()" style="margin-top: 4px;">+ Aggiungi regola di nascita</button>
+
                     <div class="editor-section-title" style="margin-top: 14px;">Mappa Modello</div>
                     <canvas id="networkCanvas" width="260" height="200"></canvas>
                 </div>
@@ -456,23 +507,17 @@
         </div>
 
         <!-- Controls -->
-        <div class="panel">
-            <div class="panel-title">Controlli Simulazione</div>
-            <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; gap: 8px;">
-                    <button id="pauseBtn" style="flex: 1;">Pausa</button>
-                    <button id="restartBtn" style="flex: 2;">▶ Avvia</button>
-                </div>
-                <button id="createModelBtn">+ Crea modello</button>
-            </div>
         </div>
-    </div>
 
     <div class="container">
-        <!-- Simulation canvas -->
         <div class="panel">
-            <div class="panel-title">Campo di Simulazione
-                <span style="margin-left: auto; font-size: 13px; color: var(--text-sub); font-weight: 400;" id="dayDisplay">Giorno 0</span>
+            <div class="panel-title" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="flex: 1;">Campo di Simulazione</div>
+                <div style="display: flex; gap: 8px; justify-content: center; flex: 1;">
+                    <button id="pauseBtn" style="width: auto; padding: 4px 16px; font-size: 12px;">Pausa</button>
+                    <button id="restartBtn" style="width: auto; padding: 4px 16px; font-size: 12px;">▶ Avvia</button>
+                </div>
+                <div style="flex: 1; text-align: right; font-size: 13px; color: var(--text-sub); font-weight: 400;" id="dayDisplay">Giorno 0</div>
             </div>
             <div style="padding: 10px 12px 12px; position: relative;">
                 <div class="sim-wrapper">
@@ -514,6 +559,44 @@
 </div>
 
 <div id="paramsPopup"></div>
+
+<div id="nodeModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 style="margin:0">Impostazioni:</h3>
+                <select id="nodeSelect" onchange="switchSettingsNode(this.value)" style="width: auto; padding: 4px 28px 4px 8px; font-weight: bold;"></select>
+            </div>
+            <button onclick="closeNodeSettings()" class="btn-close-modal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-row">
+                <label><input type="checkbox" id="setStatic"> Compartimento Fermo (Non si muove nel canvas)</label>
+            </div>
+            <div class="setting-row">
+                <label><input type="checkbox" id="setIsolated"> Compartimento Inerte (Non interagisce fisicamente)</label>
+            </div>
+            <div class="setting-row">
+                <label><input type="checkbox" id="setCanReproduce"> Abilitato alla riproduzione (Può avere figli)</label>
+            </div>
+            <div class="setting-row">
+                <label>Moltiplicatore di Contagio (1.0 = normale, 0.2 = isolamento/ridotto)</label>
+                <input type="number" id="setInfectMult" step="0.1" min="0">
+            </div>
+            <hr>
+            <div class="setting-row">
+                <label>Capienza Massima (es. numero di posti in ospedale)</label>
+                <input type="number" id="setCapacity" placeholder="Nessun limite">
+            </div>
+            <div class="setting-row">
+                <label>Regole di Eccedenza (se la capienza viene superata, smista a:)</label>
+                <div id="overflowRulesList"></div>
+                <button class="btn-add" onclick="addOverflowRule()" style="margin-top:5px">+ Aggiungi destinazione d'eccedenza</button>
+            </div>
+            <button id="restartBtn" onclick="closeNodeSettings()" style="margin-top:15px">Salva e Chiudi</button>
+        </div>
+    </div>
+</div>
 
 <script>
     // Configurazione iniziale
@@ -651,7 +734,13 @@
         }
 
         move() {
-            if (this.state === D || this.state === H) return; 
+            const model = document.getElementById('modelSelect').value;
+            if (model === 'CUSTOM') {
+                const nodeInfo = customModel.nodes.find(n => n.id === this.state);
+                if (nodeInfo && nodeInfo.isStatic) return;
+            } else {
+                if (this.state === D || this.state === H) return; 
+            }
 
             this.x += this.vx;
             this.y += this.vy;
@@ -739,18 +828,35 @@
                 particles.push(new Particle(x, y, i < i0 ? startState : S));
             }
         }
-        if (chart) chart.options.scales.y.max = currentPopulation;
+        if (chart) delete chart.options.scales.y.max; // Eliminiamo il limite fisso per permettere l'auto-scaling
     }
     
     function handleCollisions() {
         const model = document.getElementById('modelSelect').value;
 
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const p1 = particles[i];
-                const p2 = particles[j];
+        let isolatedStates = new Set();
+        let activePopCount = 0;
+        
+        if (model === 'CUSTOM') {
+            customModel.nodes.forEach(n => { if (n.isIsolated) isolatedStates.add(n.id); });
+            // Calcoliamo la popolazione attiva escludendo i compartimenti inerti (es. Morti)
+            activePopCount = particles.filter(p => !isolatedStates.has(p.state)).length;
+        }
 
-                if (p1.state === D || p2.state === D || p1.state === H || p2.state === H) continue;
+        const len = particles.length; // Evita loop infiniti con le nuove nascite
+        for (let i = 0; i < len; i++) {
+            const p1 = particles[i];
+            if (window.hiddenStates && window.hiddenStates.has(p1.state)) continue; // Ottimizzazione CPU
+
+            for (let j = i + 1; j < len; j++) {
+                const p2 = particles[j];
+                if (window.hiddenStates && window.hiddenStates.has(p2.state)) continue; // Ottimizzazione CPU
+
+                if (model === 'CUSTOM') {
+                    if (isolatedStates.has(p1.state) || isolatedStates.has(p2.state)) continue;
+                } else {
+                    if (p1.state === D || p2.state === D || p1.state === H || p2.state === H) continue;
+                }
 
                 const dx = p1.x - p2.x;
                 const dy = p1.y - p2.y;
@@ -760,11 +866,38 @@
                     // BUG FIX: skip degenerate case (two particles on exact same position)
                     if (dist === 0) continue;
                     if (model === 'CUSTOM') {
+                        // LOGICA NASCITE (Riproduzione)
+                        if (customModel.births && activePopCount < (customModel.maxPop || 1500)) {
+                            customModel.births.forEach(b => {
+                                if ((p1.state === b.p1 && p2.state === b.p2) || (p1.state === b.p2 && p2.state === b.p1)) {
+                                    
+                                    // Verifica se entrambi i genitori appartengono a compartimenti fertili
+                                    const parent1Info = customModel.nodes.find(n => n.id === p1.state);
+                                    const parent2Info = customModel.nodes.find(n => n.id === p2.state);
+                                    const canP1 = parent1Info ? (parent1Info.canReproduce !== false) : true;
+                                    const canP2 = parent2Info ? (parent2Info.canReproduce !== false) : true;
+
+                                    if (canP1 && canP2 && Math.random() < b.rate) {
+                                        // Nasce una nuova particella vicino ai genitori
+                                        const nx = p1.x + (Math.random() - 0.5) * 10;
+                                        const ny = p1.y + (Math.random() - 0.5) * 10;
+                                        particles.push(new Particle(Math.max(0, Math.min(width, nx)), Math.max(0, Math.min(height, ny)), b.child));
+                                        currentPopulation = particles.length; // Aggiorna per i grafici
+                                        activePopCount++; // Incrementa per non sforare il limite nello stesso frame
+                                    }
+                                }
+                            });
+                        }
+
                         // LOGICA UNIVERSALE: Se esiste un arco "Per Contatto" da A a B,
                         // la particella in stato A diventa B se tocca qualcuno già in stato B.
                         customModel.edges.filter(e => e.type === 'contatto').forEach(edge => {
-                            if (p1.state === edge.from && p2.state === edge.to && Math.random() < edge.rate) p1.state = edge.to;
-                            if (p2.state === edge.from && p1.state === edge.to && Math.random() < edge.rate) p2.state = edge.to;
+                            const targetNode = customModel.nodes.find(n => n.id === edge.to);
+                            const mult = (targetNode && targetNode.infectMult !== undefined) ? targetNode.infectMult : 1;
+                            const finalRate = edge.rate * mult;
+                            
+                            if (p1.state === edge.from && p2.state === edge.to && Math.random() < finalRate) p1.state = edge.to;
+                            if (p2.state === edge.from && p1.state === edge.to && Math.random() < finalRate) p2.state = edge.to;
                         });
                     } else {
                         const nextState = ['SEIS', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model) ? E : I;
@@ -796,13 +929,24 @@
 
     function updateInfections() {
         const model = document.getElementById('modelSelect').value;
+
         particles.forEach(p => {
             const r = Math.random();
             if (model === 'CUSTOM') {
                 // LOGICA UNIVERSALE: Transizioni spontanee temporali
-                customModel.edges.filter(e => e.type === 'spontaneo').forEach(edge => {
-                    if (p.state === edge.from && r < edge.rate) p.state = edge.to;
-                });
+                let cumulative = 0;
+                const originalState = p.state; 
+                
+                // Raccogliamo solo i flussi spontanei che partono dallo stato in cui si trova la particella in questo istante
+                const possibleEdges = customModel.edges.filter(e => e.type === 'spontaneo' && e.from === originalState);
+                
+                for (let edge of possibleEdges) {
+                    cumulative += edge.rate; // Sommiamo le probabilità per non sovrapporle
+                    if (r < cumulative) {
+                        p.state = edge.to;
+                        break; // IMPORTANTISSIMO: interrompe il ciclo e impedisce le reazioni a catena fantasma
+                    }
+                }
             } else {
                 if (p.state === S || p.state === D) return;
                 if (model === 'SIS') { if (p.state === I && r < getParam('nu')) p.state = S; }
@@ -841,6 +985,30 @@
                 }
             }
         });
+
+        // Gestione capacità e smistamento in eccedenza (Spostato a fine frame per precisione)
+        if (model === 'CUSTOM') {
+            const currentStats = getStats();
+            customModel.nodes.forEach(node => {
+                if (node.capacity !== null && node.capacity !== undefined && currentStats[node.id] > node.capacity) {
+                    let excess = currentStats[node.id] - node.capacity;
+                    let targets = node.overflow || [];
+                    if (targets.length === 0) return;
+
+                    particles.filter(p => p.state === node.id).slice(0, excess).forEach(p => {
+                        let rand = Math.random();
+                        let cumulative = 0;
+                        for (let rule of targets) {
+                            cumulative += rule.rate;
+                            if (rand <= cumulative) {
+                                p.state = rule.to;
+                                break;
+                            }
+                        }
+                    });
+                }
+            });
+        }
     }
 
     function initChart() {
@@ -851,15 +1019,21 @@
         let datasets = [];
 
         if (model === 'CUSTOM') {
-            datasets = customModel.nodes.map(node => ({
-                label: node.id, // Usiamo l'ID come etichetta
-                borderColor: node.color,
-                backgroundColor: node.color,
-                data: [],
-                pointRadius: 0,
-                fill: false,
-                tension: 0.1
-            }));
+            datasets = customModel.nodes.map(node => {
+                const isLeaf = window.isLeafCompartment && window.isLeafCompartment(node.id);
+                if (isLeaf && window.hiddenStates) window.hiddenStates.add(node.id);
+                
+                return {
+                    label: node.id, // Usiamo l'ID come etichetta
+                    borderColor: node.color,
+                    backgroundColor: node.color,
+                    data: [],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.1,
+                    hidden: isLeaf
+                };
+            });
         } else {
             const activeStates = ['S', 'I'];
             if (['SIR', 'SEIR', 'SEIRS', 'SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('R');
@@ -867,15 +1041,21 @@
             if (['SEIRD', 'SEIIRHD'].includes(model)) activeStates.push('D');
             if (model === 'SEIIRHD') { activeStates.push('A'); activeStates.push('H'); }
 
-            datasets = activeStates.map(state => ({
-                label: LABELS[state],
-                borderColor: COLORS[state],
-                backgroundColor: COLORS[state],
-                data: [],
-                pointRadius: 0,
-                fill: false,
-                tension: 0.1
-            }));
+            datasets = activeStates.map(state => {
+                const isLeaf = window.isLeafCompartment && window.isLeafCompartment(state);
+                if (isLeaf && window.hiddenStates) window.hiddenStates.add(state);
+                
+                return {
+                    label: LABELS[state],
+                    borderColor: COLORS[state],
+                    backgroundColor: COLORS[state],
+                    data: [],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.1,
+                    hidden: isLeaf
+                };
+            });
         }
 
         chart = new Chart(ctxChart, {
@@ -886,6 +1066,21 @@
                 plugins: {
                     legend: { 
                         display: true,
+                        onClick: function(e, legendItem, legend) {
+                            const index = legendItem.datasetIndex;
+                            const label = legendItem.text;
+                            const model = document.getElementById('modelSelect').value;
+                            
+                            let stateKey = label;
+                            if (model !== 'CUSTOM') {
+                                stateKey = Object.keys(LABELS).find(k => LABELS[k] === label) || label;
+                            }
+                            
+                            // Esegue il toggle solo se è una foglia verificata
+                            if (window.isLeafCompartment && window.isLeafCompartment(stateKey)) {
+                                window.toggleChartLine(stateKey);
+                            }
+                        },
                         labels: {
                             color: '#e6edf3',
                             font: { family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif", size: 12 },
@@ -897,7 +1092,7 @@
                 scales: { 
                     y: { 
                         beginAtZero: true, 
-                        max: currentPopulation,
+                        // max rimosso per delegare l'auto-scaling nativo a Chart.js
                         grid: { color: 'rgba(42,58,74,0.6)', lineWidth: 1 },
                         ticks: { color: '#8b949e', font: { size: 11 } },
                         border: { color: '#2a3a4a' }
@@ -937,17 +1132,77 @@
         return stats;
     }
 
+    // Identifica se un compartimento non ha flussi o eccedenze in uscita
+    window.isLeafCompartment = function(stateKey) {
+        const model = document.getElementById('modelSelect').value;
+        if (model === 'CUSTOM') {
+            const hasOutFlow = customModel.edges.some(e => e.from === stateKey && e.rate > 0);
+            const nodeInfo = customModel.nodes.find(n => n.id === stateKey);
+            const hasOverflow = nodeInfo && nodeInfo.capacity !== null && nodeInfo.overflow && nodeInfo.overflow.length > 0;
+            return !hasOutFlow && !hasOverflow;
+        } else {
+            if (['SIR', 'SEIR'].includes(model) && stateKey === 'R') return true;
+            if (['SEIRD', 'SEIIRHD'].includes(model) && (stateKey === 'R' || stateKey === 'D')) return true;
+            return false;
+        }
+    };
+
+    // Nasconde o mostra linea sul grafico, rimuove particelle e ottimizza CPU
+    window.toggleChartLine = function(stateKey) {
+        if (!chart) return;
+        const model = document.getElementById('modelSelect').value;
+        const targetLabel = model === 'CUSTOM' ? stateKey : LABELS[stateKey];
+        const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === targetLabel);
+        
+        if (datasetIndex !== -1) {
+            const isVisible = chart.isDatasetVisible(datasetIndex);
+            
+            if (isVisible) {
+                chart.hide(datasetIndex);
+                window.hiddenStates.add(stateKey);
+            } else {
+                chart.show(datasetIndex);
+                window.hiddenStates.delete(stateKey);
+            }
+            chart.update();
+            
+            // Forza aggiornamento UI istantaneo anche senza aspettare il frame successivo
+            updateLiveStats(getStats());
+            
+            // Se siamo in pausa, puliamo e ridisegniamo il canvas all'istante
+            if (isPaused) {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => {
+                    if (!window.hiddenStates.has(p.state)) p.draw(ctx);
+                });
+            }
+        }
+    };
+
     function updateLiveStats(stats) {
         const statsContent = document.getElementById('statsContent');
         const model = document.getElementById('modelSelect').value;
         let html = '';
         
-        const makeRow = (color, labelText, value) => {
+        const makeRow = (color, labelText, value, stateKey) => {
             const pct = currentPopulation > 0 ? (value / currentPopulation * 100).toFixed(1) : 0;
-            return `<div class="stat-row">
+            const isLeaf = isLeafCompartment(stateKey);
+            
+            // Abilita interazione solo se è una foglia
+            const cursorStyle = isLeaf ? 'cursor: pointer;' : '';
+            const titleAttr = isLeaf ? 'title="Clicca per mostrare o nascondere dal grafico"' : '';
+            const clickEvent = isLeaf ? `onclick="toggleChartLine('${stateKey}')"` : '';
+            
+            let leafHint = '';
+            if (isLeaf) {
+                const isHidden = window.hiddenStates && window.hiddenStates.has(stateKey);
+                leafHint = `<span style="font-size:10px; opacity:0.5; margin-left:4px;">${isHidden ? '(Clicca per mostrare)' : '(Clicca per nascondere)'}</span>`;
+            }
+
+            return `<div class="stat-row" style="${cursorStyle}" ${titleAttr} ${clickEvent}>
                 <div class="stat-label">
                     <span style="color:${color}; font-size:10px;">■</span>
-                    <span style="color:${color};">${labelText}</span>
+                    <span style="color:${color};">${labelText}${leafHint}</span>
                 </div>
                 <span class="stat-value">${value}</span>
             </div>
@@ -956,7 +1211,7 @@
         
         if (model === 'CUSTOM') {
             customModel.nodes.forEach(node => {
-                html += makeRow(node.color, node.id, stats[node.id] || 0);
+                html += makeRow(node.color, node.id, stats[node.id] || 0, node.id);
             });
         } else {
             const activeStates = ['S', 'I'];
@@ -1030,7 +1285,11 @@
         ctx.clearRect(0, 0, width, height);
         handleCollisions();
         updateInfections();
-        particles.forEach(p => { p.move(); p.draw(ctx); });
+        particles.forEach(p => { 
+            if (window.hiddenStates && window.hiddenStates.has(p.state)) return; // Salta completamente
+            p.move(); 
+            p.draw(ctx); 
+        });
 
         timeElapsed++;
         if (timeElapsed % 10 === 0) {
@@ -1042,7 +1301,8 @@
             chart.data.labels.push(giornoAttuale);
             
             chart.data.datasets.forEach(dataset => {
-                const stateKey = Object.keys(LABELS).find(k => LABELS[k] === dataset.label) || dataset.label;
+                const model = document.getElementById('modelSelect').value;
+                const stateKey = model === 'CUSTOM' ? dataset.label : (Object.keys(LABELS).find(k => LABELS[k] === dataset.label) || dataset.label);
                 dataset.data.push(stats[stateKey] || 0);
             });
 
@@ -1098,6 +1358,7 @@
     function startSimulation() {
         if (animationId) cancelAnimationFrame(animationId);
         
+        window.hiddenStates = new Set(); // Resetta i compartimenti nascosti
         isPaused = false;
         const pauseBtn = document.getElementById('pauseBtn');
         pauseBtn.textContent = "Pausa";
@@ -1121,23 +1382,70 @@
         animate();
     }
 
+    let editingNodeIdx = null;
     // Struttura dati per il Modello Personalizzato
     let customModel = {
-        nodes: [{ id: 'S', label: 'Suscettibili', color: COLORS['S'], init: 198 }, { id: 'I', label: 'Infetti', color: COLORS['I'], init: 2 }],
+        maxPop: 1500,
+        births: [],
+        nodes: [
+            { id: 'S', label: 'Suscettibili', color: COLORS['S'], init: 198, isStatic: false, isIsolated: false, infectMult: 1, capacity: null, overflow: [] },
+            { id: 'I', label: 'Infetti', color: COLORS['I'], init: 2, isStatic: false, isIsolated: false, infectMult: 1, capacity: null, overflow: [] }
+        ],
         edges: []
     };
 
     // Gestione dell'interfaccia Editor
     function toggleEditorView() {
-        const model = document.getElementById('modelSelect').value;
+        let model = document.getElementById('modelSelect').value;
+        
+        // Intercetta l'opzione TEST, compila il modello e passa alla vista CUSTOM
+        if (model === 'TEST') {
+            customModel = {
+                maxPop: 2000,
+                births: [
+                    { p1: 'Suscettibili', p2: 'Suscettibili', child: 'Suscettibili', rate: 0.02 },
+                    { p1: 'Suscettibili', p2: 'Infetti', child: 'Suscettibili', rate: 0.012 },
+                    { p1: 'Suscettibili', p2: 'Infetti', child: 'Infetti', rate: 0.008 },
+                    { p1: 'Infetti', p2: 'Infetti', child: 'Infetti', rate: 0.008 },
+                    { p1: 'Infetti', p2: 'Infetti', child: 'Suscettibili', rate: 0.004 },
+                    { p1: 'Infetti', p2: 'Infetti', child: 'Immuni', rate: 0.002 }, // Possibilità di prole con immunità congenita
+                    { p1: 'Immuni', p2: 'Immuni', child: 'Suscettibili', rate: 0.015 },
+                    { p1: 'Immuni', p2: 'Immuni', child: 'Immuni', rate: 0.005 },       // Ereditarietà parziale dell'immunità
+                    { p1: 'Suscettibili', p2: 'Immuni', child: 'Suscettibili', rate: 0.02 },
+                    { p1: 'Infetti', p2: 'Immuni', child: 'Suscettibili', rate: 0.01 }
+                ],
+                nodes: [
+                    { id: 'Suscettibili', label: 'Suscettibili', color: '#3498db', init: 1000, isStatic: false, isIsolated: false, infectMult: 1, canReproduce: true, capacity: null, overflow: [] }, 
+                    { id: 'Infetti', label: 'Infetti', color: '#e74c3c', init: 2, isStatic: false, isIsolated: false, infectMult: 1, canReproduce: true, capacity: null, overflow: [] },
+                    { id: 'Ospedalizzati', label: 'Ospedalizzati', color: '#2ecc71', init: 0, isStatic: true, isIsolated: false, infectMult: 0.6, canReproduce: false, capacity: 150, overflow: [{to: 'Morti', rate: 0.45}, {to: 'Suscettibili', rate: 0.55}] },
+                    { id: 'Morti', label: 'Morti', color: '#f1c40f', init: 0, isStatic: true, isIsolated: true, infectMult: 1, canReproduce: false, capacity: null, overflow: [] },
+                    { id: 'Immuni', label: 'Immuni', color: '#9b59b6', init: 0, isStatic: false, isIsolated: false, infectMult: 0, canReproduce: true, capacity: null, overflow: [] }
+                ],
+                edges: [
+                    { from: 'Suscettibili', to: 'Infetti', type: 'contatto', rate: 0.4 },
+                    { from: 'Infetti', to: 'Ospedalizzati', type: 'spontaneo', rate: 0.002 },
+                    { from: 'Ospedalizzati', to: 'Morti', type: 'spontaneo', rate: 0.001 },
+                    { from: 'Infetti', to: 'Suscettibili', type: 'spontaneo', rate: 0.005 },
+                    { from: 'Ospedalizzati', to: 'Suscettibili', type: 'spontaneo', rate: 0.004 },
+                    { from: 'Infetti', to: 'Immuni', type: 'spontaneo', rate: 0.008 },
+                    { from: 'Ospedalizzati', to: 'Immuni', type: 'spontaneo', rate: 0.016 }
+                ]
+            };
+            document.getElementById('modelSelect').value = 'CUSTOM';
+            model = 'CUSTOM';
+        }
+
         const editor = document.getElementById('customEditor');
         const standardInputs = document.getElementById('standardInputs');
+        const createBtn = document.getElementById('createModelBtn');
         
         if (model === 'CUSTOM') {
+            if (createBtn) createBtn.style.display = 'none';
             editor.style.display = 'block';
             standardInputs.style.display = 'none';
             renderEditor();
         } else {
+            if (createBtn) createBtn.style.display = 'block';
             editor.style.display = 'none';
             standardInputs.style.display = 'block';
             buildControls();
@@ -1156,9 +1464,9 @@
             const div = document.createElement('div');
             div.className = 'node-row';
             div.innerHTML = `
-                <input type="text" value="${node.id}" onchange="updateNode(${index}, 'id', this.value)">
-                <input type="color" value="${node.color}" onchange="updateNode(${index}, 'color', this.value)">
-                <input type="number" value="${node.init}" onchange="updateNode(${index}, 'init', this.value)">
+                <input type="text" value="${node.id}" style="width:40px;" title="Nome" onchange="updateNode(${index}, 'id', this.value)">
+                <input type="color" value="${node.color}" title="Colore" onchange="updateNode(${index}, 'color', this.value)">
+                <input type="number" value="${node.init}" style="width:60px;" title="Popolazione Iniziale" onchange="updateNode(${index}, 'init', this.value)">
                 <button class="btn-remove" onclick="removeNode(${index})">×</button>
             `;
             nodeDiv.appendChild(div);
@@ -1188,19 +1496,164 @@
                     ${availableToNodes.map(n => `<option value="${n.id}" ${n.id === edge.to ? 'selected' : ''}>${n.id}</option>`).join('')}
                 </select>
                 <select onchange="updateEdge(${index}, 'type', this.value)" style="flex:1;">
-                    <option value="spontaneo" ${edge.type === 'spontaneo' ? 'selected' : ''}>Spon.</option>
-                    <option value="contatto" ${edge.type === 'contatto' ? 'selected' : ''}>Cont.</option>
+                    <option value="spontaneo" ${edge.type === 'spontaneo' ? 'selected' : ''}>Spontaneo</option>
+                    <option value="contatto" ${edge.type === 'contatto' ? 'selected' : ''}>Contatto</option>
                 </select>
-                <input type="number" min="0" max="1" step="0.01" value="${edge.rate}" style="width:48px;" oninput="updateEdge(${index}, 'rate', this.value)">
+                <input type="number" min="0" max="1" step="0.001" value="${edge.rate}" style="width:60px;" oninput="updateEdge(${index}, 'rate', this.value)">
                 <button class="btn-remove" onclick="removeEdge(${index})">×</button>
             `;
             edgeDiv.appendChild(div);
-    });
+        });
+
+        // Render Nascite e Demografia
+        const birthDiv = document.getElementById('birthList');
+        if (birthDiv) {
+            birthDiv.innerHTML = '';
+            document.getElementById('globalMaxPop').value = customModel.maxPop || 1500;
+            
+            if (customModel.births) {
+                customModel.births.forEach((birth, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'edge-row';
+                    div.innerHTML = `
+                        <select onchange="updateBirth(${index}, 'p1', this.value)">
+                            ${customModel.nodes.map(n => `<option value="${n.id}" ${n.id === birth.p1 ? 'selected' : ''}>${n.id}</option>`).join('')}
+                        </select>
+                        <span style="color: var(--text-sub); font-size:12px;">+</span>
+                        <select onchange="updateBirth(${index}, 'p2', this.value)">
+                            ${customModel.nodes.map(n => `<option value="${n.id}" ${n.id === birth.p2 ? 'selected' : ''}>${n.id}</option>`).join('')}
+                        </select>
+                        <span style="color: var(--accent); font-size:14px;">=</span>
+                        <select onchange="updateBirth(${index}, 'child', this.value)">
+                            ${customModel.nodes.map(n => `<option value="${n.id}" ${n.id === birth.child ? 'selected' : ''}>${n.id}</option>`).join('')}
+                        </select>
+                        <input type="number" min="0" max="1" step="0.001" value="${birth.rate}" style="width:60px;" oninput="updateBirth(${index}, 'rate', this.value)">
+                        <button class="btn-remove" onclick="removeBirth(${index})">×</button>
+                    `;
+                    birthDiv.appendChild(div);
+                });
+            }
+        }
     
     drawNetwork();
 }
 
-// Funzioni per disegnare la mappa del modello (Layout ad albero/gerarchico)
+window.updateGlobalMaxPop = (val) => { customModel.maxPop = parseInt(val) || 1500; };
+window.addBirth = () => {
+    if (customModel.nodes.length > 0) {
+        if(!customModel.births) customModel.births = [];
+        const nId = customModel.nodes[0].id;
+        customModel.births.push({ p1: nId, p2: nId, child: nId, rate: 0.005 });
+        renderEditor();
+    }
+};
+window.removeBirth = (idx) => { customModel.births.splice(idx, 1); renderEditor(); };
+window.updateBirth = (idx, field, val) => { 
+    customModel.births[idx][field] = (field === 'rate' ? parseFloat(val) : val); 
+};
+
+    // Funzioni per il Menu Impostazioni Nodo
+    window.openNodeSettings = () => {
+        if (customModel.nodes.length === 0) {
+            alert("Aggiungi almeno un compartimento prima di aprire le impostazioni.");
+            return;
+        }
+        if (editingNodeIdx === null || editingNodeIdx >= customModel.nodes.length) {
+            editingNodeIdx = 0; // Default al primo compartimento
+        }
+        
+        populateNodeSelect();
+        loadNodeData(editingNodeIdx);
+        document.getElementById('nodeModal').style.display = 'flex';
+    };
+
+    window.populateNodeSelect = () => {
+        const select = document.getElementById('nodeSelect');
+        select.innerHTML = customModel.nodes.map((n, i) => 
+            `<option value="${i}">${n.id}</option>`
+        ).join('');
+        select.value = editingNodeIdx;
+    };
+
+    window.switchSettingsNode = (newIdx) => {
+        saveCurrentNodeData(); // Salva modifiche prima di cambiare nodo
+        editingNodeIdx = parseInt(newIdx);
+        loadNodeData(editingNodeIdx);
+    };
+
+    window.loadNodeData = (idx) => {
+        const node = customModel.nodes[idx];
+        if(node.infectMult === undefined) node.infectMult = 1;
+        if(node.canReproduce === undefined) node.canReproduce = true; // Default attivo
+        if(!node.overflow) node.overflow = [];
+
+        document.getElementById('setStatic').checked = node.isStatic || false;
+        document.getElementById('setIsolated').checked = node.isIsolated || false;
+        document.getElementById('setCanReproduce').checked = node.canReproduce;
+        document.getElementById('setInfectMult').value = node.infectMult;
+        document.getElementById('setCapacity').value = node.capacity || '';
+        
+        renderOverflowRules(idx);
+    };
+
+    window.saveCurrentNodeData = () => {
+        if (editingNodeIdx === null || !customModel.nodes[editingNodeIdx]) return;
+        const node = customModel.nodes[editingNodeIdx];
+        node.isStatic = document.getElementById('setStatic').checked;
+        node.isIsolated = document.getElementById('setIsolated').checked;
+        node.canReproduce = document.getElementById('setCanReproduce').checked;
+        node.infectMult = parseFloat(document.getElementById('setInfectMult').value);
+        const cap = parseInt(document.getElementById('setCapacity').value);
+        node.capacity = isNaN(cap) ? null : cap;
+    };
+
+    window.renderOverflowRules = (idx) => {
+        const node = customModel.nodes[idx];
+        const overflowList = document.getElementById('overflowRulesList');
+        overflowList.innerHTML = '';
+        const others = customModel.nodes.filter((n, i) => i !== idx);
+        
+        node.overflow.forEach((rule, rIdx) => {
+            const row = document.createElement('div');
+            row.className = 'overflow-rule';
+            row.innerHTML = `
+                <select onchange="updateOverflow(${rIdx}, 'to', this.value)">
+                    ${others.map(n => `<option value="${n.id}" ${n.id === rule.to ? 'selected' : ''}>${n.id}</option>`).join('')}
+                </select>
+                <input type="number" step="0.1" min="0" max="1" value="${rule.rate}" style="width:60px" onchange="updateOverflow(${rIdx}, 'rate', this.value)">
+                <button class="btn-remove" onclick="removeOverflow(${rIdx})">×</button>
+            `;
+            overflowList.appendChild(row);
+        });
+    };
+
+    window.closeNodeSettings = () => {
+        saveCurrentNodeData();
+        document.getElementById('nodeModal').style.display = 'none';
+        renderEditor();
+    };
+
+    window.addOverflowRule = () => {
+        saveCurrentNodeData(); 
+        const node = customModel.nodes[editingNodeIdx];
+        const others = customModel.nodes.filter(n => n.id !== node.id);
+        if (others.length > 0) {
+            node.overflow.push({ to: others[0].id, rate: 0.5 });
+            renderOverflowRules(editingNodeIdx); 
+        }
+    };
+
+    window.updateOverflow = (rIdx, field, val) => {
+        customModel.nodes[editingNodeIdx].overflow[rIdx][field] = field === 'rate' ? parseFloat(val) : val;
+    };
+
+    window.removeOverflow = (rIdx) => {
+        saveCurrentNodeData();
+        customModel.nodes[editingNodeIdx].overflow.splice(rIdx, 1);
+        renderOverflowRules(editingNodeIdx);
+    };
+
+    // Funzioni per disegnare la mappa del modello (Layout ad albero/gerarchico)
 function drawNetwork() {
     const netCanvas = document.getElementById('networkCanvas');
     if (!netCanvas) return;
@@ -1289,8 +1742,14 @@ function drawNetwork() {
         const isBackwardOrSkip = depths[edge.to] <= depths[edge.from] || Math.abs(depths[edge.to] - depths[edge.from]) > 1;
         
         let curveOffset = 0;
-        if (hasReverse) curveOffset = 18;
-        else if (isBackwardOrSkip) curveOffset = 45; // Curva larga per deviare intorno ai nodi centrali
+        if (hasReverse) {
+            curveOffset = 18;
+        } else if (isBackwardOrSkip) {
+            // Se torna indietro o salta un livello, spingiamo la curva verso l'esterno del canvas
+            // per evitare che tagli a metà i nodi centrali creando illusioni ottiche
+            curveOffset = (posFrom.x < w / 2) ? -65 : 65;
+            if (posFrom.x === w/2 && posTo.x === w/2) curveOffset = 65;
+        }
         
         const nx = -dy / dist;
         const ny = dx / dist;
@@ -1394,14 +1853,38 @@ function getNextColor(index) {
 
 // Funzioni di editing
 window.updateNode = (idx, field, val) => { 
+    if (field === 'isStatic' || field === 'isIsolated') {
+        customModel.nodes[idx][field] = val;
+        return;
+    }
     if (field === 'id') {
         const oldId = customModel.nodes[idx].id;
         customModel.nodes[idx].id = val;
-        // Aggiorna anche gli archi che puntavano al vecchio nome
+        
+        // Aggiorna gli archi che puntavano al vecchio nome
         customModel.edges.forEach(edge => {
             if (edge.from === oldId) edge.from = val;
             if (edge.to === oldId) edge.to = val;
         });
+        
+        // Aggiorna anche le regole di eccedenza (overflow) per evitare "fantasmi"
+        customModel.nodes.forEach(n => {
+            if (n.overflow) {
+                n.overflow.forEach(rule => {
+                    if (rule.to === oldId) rule.to = val;
+                });
+            }
+        });
+
+        // Aggiorna anche le regole di nascita
+        if (customModel.births) {
+            customModel.births.forEach(b => {
+                if (b.p1 === oldId) b.p1 = val;
+                if (b.p2 === oldId) b.p2 = val;
+                if (b.child === oldId) b.child = val;
+            });
+        }
+        
         renderEditor(); // Ridisegna l'editor per aggiornare le tendine
     } else {
         customModel.nodes[idx][field] = (field === 'init' ? parseInt(val) : val); 
@@ -1428,7 +1911,7 @@ window.addCompartment = () => {
     // Se esaurisce l'alfabeto passa a un nome numerico casuale
     newId = charCode <= 90 ? String.fromCharCode(charCode) : 'N' + Math.floor(Math.random() * 1000);
     
-    customModel.nodes.push({ id: newId, label: 'Nuovo', color: getNextColor(customModel.nodes.length), init: 0 });
+    customModel.nodes.push({ id: newId, label: 'Nuovo', color: getNextColor(customModel.nodes.length), init: 0, isStatic: false, isIsolated: false });
     renderEditor();
 };
 
@@ -1473,11 +1956,6 @@ window.updateEdge = (idx, field, val) => {
 };
 
     // Event Listeners aggiornati
-    document.getElementById('createModelBtn').addEventListener('click', () => {
-        document.getElementById('modelSelect').value = 'CUSTOM';
-        toggleEditorView();
-    });
-
     document.getElementById('modelSelect').addEventListener('change', toggleEditorView);
     document.getElementById('addCompBtn').addEventListener('click', addCompartment);
     document.getElementById('addFlowBtn').addEventListener('click', addEdge);
